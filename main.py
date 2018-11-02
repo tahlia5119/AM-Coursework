@@ -24,13 +24,30 @@ df_image_data = dc.image_to_data(data_path,df_labels)
 
 from sklearn.svm import SVC
 from sklearn.model_selection import cross_val_score
-from sklearn.neural_network import MLPClassifier
 from sklearn.model_selection import StratifiedKFold
+from sklearn.neural_network import MLPClassifier
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
+from sklearn.linear_model import LogisticRegression
 
-skf = StratifiedKFold(n_splits=5,shuffle=True,random_state=0)
-svc = SVC(random_state = 0)
-mlp = MLPClassifier(random_state = 0)
+#skf = StratifiedKFold(n_splits=5,shuffle=True,random_state=0)
+#svc = SVC(random_state = 0)
+#mlp = MLPClassifier(random_state = 0)
+#lr = LogisticRegression(random_state=0)
+#
+#label = df_labels['smiling']
+#print(cross_val_score(lr, df_image_data, label, cv=skf,verbose=10))
 
-label = df_labels['hair_color']
-print(cross_val_score(mlp, df_image_data, label, cv=skf,verbose=10))  
+#Test different sklearn classifiers to narrow down the options by comparing their CV scores
+classifiers = [MLPClassifier(random_state=0),
+               SVC(random_state=0),
+               LogisticRegression(random_state=0),
+               RandomForestClassifier(random_state=0),
+               AdaBoostClassifier(random_state=0),
+               DecisionTreeClassifier(random_state=0)]
 
+names = ['MLP','SVC','LR','RF','Ada','DT']
+
+dict_dict, cv_dict = dc.tabulate_cvs(classifiers,names,df_labels,df_image_data)
+
+cv_df = pd.DataFrame.from_dict(cv_dict, orient = 'index', columns = list(df_labels.columns.get_values())[1:])

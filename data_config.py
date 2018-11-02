@@ -6,8 +6,10 @@ Created on Wed Oct 31 14:55:23 2018
 """
 
 import pandas as pd
+import numpy as np
 import os
 from PIL import Image
+from sklearn.model_selection import cross_val_score, StratifiedKFold
 
 class data_config:
     
@@ -42,6 +44,27 @@ class data_config:
 #        if perc < 0.5 or perc > 1.0:
 #            change = min(no,yes)
 #            df_change = df[df[label.name]==change]
-            
+        
+    def tabulate_cvs(classifiers,names,df_labels,data):
+        skf = StratifiedKFold(n_splits=5,shuffle=True,random_state=0)
+        #Tabulate cross validation scores for each label for better comparison
+        #of each classifier for each label
+        labels = list(df_labels.columns.get_values())
+        dict_dict = {l: {n: [] for n in names} for l in labels[1:]}
+        cv_dict = {n: [] for n in names}
+        
+        
+        for clf,name in zip(classifiers,names):
+            ave_cvs = []
+            print(name)
+            for label in labels[1:]:
+                scores = cross_val_score(clf, data, df_labels[label], cv=skf,verbose=10)
+                ave = np.mean(scores)
+                ave_cvs.append(ave)
+                dict_dict[label][name]=scores
+            cv_dict[name]=ave_cvs
+        
+        return dict_dict,cv_dict
+                
             
         
