@@ -27,13 +27,27 @@ class data_config:
     def image_to_data(path,df):
         
         dict_images = {n: [] for n in df['file_name']}
-
+        
         for i in df['file_name']:
             img = Image.open(os.path.join(path,'dataset',(str(i)+'.png')) ) 
-            img_hist = img.histogram()     
+            img =  img.resize((227,227),Image.ANTIALIAS)
+            img_hist = img.histogram()   
             dict_images[i] = img_hist
         
         return pd.DataFrame.from_dict(dict_images,orient='index')
+    
+    def image_to_data_3_chan(path,df):
+        
+        dict_images = {n: [] for n in df['file_name']}
+        
+        chan_3_array = []
+        
+        for i in df['file_name']:
+            img = Image.open(os.path.join(path,'dataset',(str(i)+'.png')) ) 
+            img =  img.resize((227,227),Image.ANTIALIAS)
+            chan_3_array.append(np.array(img))
+        
+        return np.array(chan_3_array)
     
 #    def augment_images_bin(image_hist,label):
 #        df = pd.concat(image_hist,label,axis=1,ignore_index=True)
