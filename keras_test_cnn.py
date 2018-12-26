@@ -32,17 +32,27 @@ label_array = np.array(df_labels['smiling'].values)
 image_data = dc.image_to_data_3_chan(data_path,df_labels)
 
 #Start a sequential model
+#model = Sequential()
+#
+#model.add(Conv2D(64, kernel_size=3, activation='relu', input_shape=(227,227,3)))
+#model.add(BatchNormalization())
+#model.add(Conv2D(32, kernel_size=3, activation='relu'))
+#model.add(Flatten())
+#model.add(Dense(1, activation='softmax'))
+#
+#model.summary()
+#
+## (4) Compile 
+#model.compile(loss='binary_crossentropy', optimizer='adam',metrics=['accuracy'])
+#
+## (5) Train
+#model.fit(image_data, label_array, batch_size=64, epochs=1, verbose=1, validation_split=0.2, shuffle=True)
+
+hist_image_data = dc.image_to_data(data_path,df_labels)
+hist_image = np.reshape(hist_image_data.values,(hist_image_data.shape[0],1,hist_image_data.shape[1],))
 model = Sequential()
+model.add(Flatten(input_shape=(3902,768)))
+model.add(Dense(1,activation='relu'))
 
-model.add(Conv2D(64, kernel_size=3, activation='relu', input_shape=(227,227,3)))
-model.add(Conv2D(32, kernel_size=3, activation='relu'))
-model.add(Flatten())
-model.add(Dense(1, activation='softmax'))
-
-model.summary()
-
-# (4) Compile 
-model.compile(loss='binary_crossentropy', optimizer='adam',metrics=['accuracy'])
-
-# (5) Train
-model.fit(image_data, label_array, batch_size=64, epochs=1, verbose=1, validation_split=0.2, shuffle=True)
+model.compile(loss='binary_crossentropy',optimizer='adam',metrics=['accuracy'])
+model.fit(hist_image,label_array,batch_size=64,epochs=1,verbose=1, validation_split=0.2,shuffle=True)

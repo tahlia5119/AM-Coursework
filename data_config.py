@@ -9,76 +9,87 @@ import pandas as pd
 import numpy as np
 import os
 from PIL import Image
-from sklearn.model_selection import cross_val_score, StratifiedKFold
+#from sklearn.model_selection import cross_val_score, StratifiedKFold
+import dlib
+import cv2
+#import tensorflow as tf
+from keras.preprocessing import image
+#import lab2_landmarks as l2
 
 class data_config:
     
     def __init__(self):
         pass
     
-    def remove_noise(df):
-        #The noise removal is based on the attribute 'hair_color' as this is the
-        #only multiclass attribute - any files with a hair_color label of '-1' does
-        #not correspond to any hair colour, including bald. Therefore, these files
-        #need to be removed from the attribute list
-        df = df[df.hair_color != -1]
-        return df
-    
-    def image_to_data(path,df):
+    def remove_noise(path,df):
+        #The noise removal uses the dlib and cv2 libraries to detect faces and remove any
+        #images where the length of the returned array is 0
+        #A dataframe is returned that consists of the file_name, hair_color,
+        #eyeglasses, smiling, young, and human labels for the images that 
+        detector = dlib.get_frontal_face_detector()
+        faces = []
         
-        dict_images = {n: [] for n in df['file_name']}
+        for i in df['file_name']:
+            img_path = os.path.join(path,'dataset',(str(i)+'.png'))
+            img = image.img_to_array(image.load_img(img_path,target_size=None,interpolation='bicubic')) 
+            img = img.astype('uint8')
+            rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            rgb = rgb.astype('uint8')
+            dets=detector(rgb,1)
+            faces.append(len(dets))
+            
+        df['faces_detected'] = faces
+        
+        df = df[df.faces_detected > 0]
+        
+        return df[df.columns.tolist()[:-1]]
+    
+    def pixel_counts(path,df):
+        
+        image_array = []
         
         for i in df['file_name']:
             img = Image.open(os.path.join(path,'dataset',(str(i)+'.png')) ) 
-            img =  img.resize((227,227),Image.ANTIALIAS)
             img_hist = img.histogram()   
-            dict_images[i] = img_hist
+            image_array.append(np.array(img_hist))
         
-        return pd.DataFrame.from_dict(dict_images,orient='index')
+        return np.array(image_array)
+    
+    def image_to_data_gray(path,df):
+        
+        chan_array = []
+        
+        for i in df['file_name']:
+            img_path = os.path.join(path,'dataset',(str(i)+'.png'))
+            img = image.img_to_array(image.load_img(img_path,target_size=None,interpolation='bicubic')) 
+            img = img.astype('uint8')
+            grey = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+            grey = grey.astype('uint8')
+            chan_array.append(np.array(grey))
+            
+            shape0 = np.array(chan_array).shape[0]
+            shape1 = np.array(chan_array).shape[1]
+            shape2 = np.array(chan_array).shape[2]
+            
+        return np.array(chan_array).reshape([shape0,shape1,shape2,1])
     
     def image_to_data_3_chan(path,df):
-        
-        dict_images = {n: [] for n in df['file_name']}
         
         chan_3_array = []
         
         for i in df['file_name']:
-            img = Image.open(os.path.join(path,'dataset',(str(i)+'.png')) ) 
-            img =  img.resize((227,227),Image.ANTIALIAS)
+            img = image.load_img(os.path.join(path,'dataset',(str(i)+'.png'))) 
             chan_3_array.append(np.array(img))
         
-        return np.array(chan_3_array)
+        #Reshape the array
+        shape0 = np.array(chan_3_array).shape[0]
+        shape1 = np.array(chan_3_array).shape[1]*np.array(chan_3_array).shape[2]
+        shape2 = np.array(chan_3_array).shape[3]
+        
+        return np.array(chan_3_array)#np.array(chan_3_array).reshape([shape0, shape1, shape2])
     
-#    def augment_images_bin(image_hist,label):
-#        df = pd.concat(image_hist,label,axis=1,ignore_index=True)
-#        no = label.value_counts()[-1]
-#        yes = label.value_counts()[1]
-#        perc = abs(no-yes)/no
-#        
-#        if perc < 0.5 or perc > 1.0:
-#            change = min(no,yes)
-#            df_change = df[df[label.name]==change]
+    def facial_landmark_values(path,df):
         
-    def tabulate_cvs(classifiers,names,df_labels,data):
-        skf = StratifiedKFold(n_splits=5,shuffle=True,random_state=0)
-        #Tabulate cross validation scores for each label for better comparison
-        #of each classifier for each label
-        labels = list(df_labels.columns.get_values())
-        dict_dict = {l: {n: [] for n in names} for l in labels[1:]}
-        cv_dict = {n: [] for n in names}
-        
-        
-        for clf,name in zip(classifiers,names):
-            ave_cvs = []
-            print(name)
-            for label in labels[1:]:
-                scores = cross_val_score(clf, data, df_labels[label], cv=skf,verbose=10)
-                ave = np.mean(scores)
-                ave_cvs.append(ave)
-                dict_dict[label][name]=scores
-            cv_dict[name]=ave_cvs
-        
-        return dict_dict,cv_dict
                 
-            
+        
         
