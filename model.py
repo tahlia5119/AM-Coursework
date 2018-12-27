@@ -48,7 +48,7 @@ def createModelGray():
 
 print('Creating model...')
 model = createModelGray()
-batch_size = 10
+batch_size = 100
 epochs = 1
 
 print('Compiling model...')

@@ -8,7 +8,6 @@ Created on Wed Oct 31 16:10:14 2018
 import os
 import pandas as pd
 from data_config import data_config as dc
-from PIL import Image
 import numpy as np
 
 data_path ='D:/Tahlia/OneDrive/University/Year 4/Applied Machine Learning'

@@ -14,7 +14,7 @@ import dlib
 import cv2
 #import tensorflow as tf
 from keras.preprocessing import image
-#import lab2_landmarks as l2
+import lab2_landmarks as l2
 
 class data_config:
     
@@ -57,7 +57,7 @@ class data_config:
     
     def image_to_data_gray(path,df):
         
-        chan_array = []
+        gray_array = []
         
         for i in df['file_name']:
             img_path = os.path.join(path,'dataset',(str(i)+'.png'))
@@ -65,31 +65,33 @@ class data_config:
             img = img.astype('uint8')
             grey = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
             grey = grey.astype('uint8')
-            chan_array.append(np.array(grey))
+            gray_array.append(np.array(grey))
             
-            shape0 = np.array(chan_array).shape[0]
-            shape1 = np.array(chan_array).shape[1]
-            shape2 = np.array(chan_array).shape[2]
+            shape0 = np.array(gray_array).shape[0]
+            shape1 = np.array(gray_array).shape[1]
+            shape2 = np.array(gray_array).shape[2]
             
-        return np.array(chan_array).reshape([shape0,shape1,shape2,1])
+        return np.array(gray_array).reshape([shape0,shape1,shape2,1])
     
-    def image_to_data_3_chan(path,df):
+    def image_to_data_rgb(path,df):
         
-        chan_3_array = []
+        rgb_array = []
         
         for i in df['file_name']:
-            img = image.load_img(os.path.join(path,'dataset',(str(i)+'.png'))) 
-            chan_3_array.append(np.array(img))
+            img_path = os.path.join(path,'dataset',(str(i)+'.png'))
+            img = image.img_to_array(image.load_img(img_path, target_size=None,interpolation='bicubic')) 
+            img.astype('uint8')
+            rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            rgb = rgb.astype('uint8')
+            rgb_array.append(np.array(rgb))
         
-        #Reshape the array
-        shape0 = np.array(chan_3_array).shape[0]
-        shape1 = np.array(chan_3_array).shape[1]*np.array(chan_3_array).shape[2]
-        shape2 = np.array(chan_3_array).shape[3]
-        
-        return np.array(chan_3_array)#np.array(chan_3_array).reshape([shape0, shape1, shape2])
+        return np.array(rgb_array)
     
     def facial_landmark_values(path,df):
         
+        feature_array = l2.extract_features_labels(path,df)
+        
+        return feature_array
                 
         
         
