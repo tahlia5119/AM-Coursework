@@ -1,5 +1,6 @@
 import os
 import numpy as np
+import pandas as pd
 from keras.preprocessing import image
 import cv2
 import dlib
@@ -58,11 +59,11 @@ def run_dlib_shape(image):
     # load the input image, resize it, and convert it to grayscale
     resized_image = image.astype('uint8')
 
-    gray = cv2.cvtColor(resized_image, cv2.COLOR_BGR2GRAY)
-    gray = gray.astype('uint8')
+    rgb = cv2.cvtColor(resized_image, cv2.COLOR_BGR2RGB)
+    rgb = rgb.astype('uint8')
 
     # detect faces in the grayscale image
-    rects = detector(gray, 1)
+    rects = detector(rgb, 1)
     num_faces = len(rects)
 
     if num_faces == 0:
@@ -76,7 +77,7 @@ def run_dlib_shape(image):
         # determine the facial landmarks for the face region, then
         # convert the facial landmark (x, y)-coordinates to a NumPy
         # array
-        temp_shape = predictor(gray, rect)
+        temp_shape = predictor(rgb, rect)
         temp_shape = shape_to_np(temp_shape)
 
         # convert dlib's rectangle to a OpenCV-style bounding box
@@ -99,24 +100,31 @@ def extract_features_labels(path,df):
         gender_labels:      an array containing the gender label (male=0 and female=1) for each image in
                             which a face was detected
     """
-    basedir = os.path.join(path,'dataset')
-    images_dir = basedir#os.path.join(basedir,'celeba')
     
-    image_paths = [os.path.join(images_dir, (str(l)+'.png')) for l in list(df['file_name'])]
-    target_size = None
     all_features = []
-    for img_path in image_paths:
-        # load image
-        img = image.img_to_array(image.load_img(img_path,target_size=target_size,interpolation='bicubic'))
+    file_id = []
+
+    for i in df['file_name']:
+        img_path = os.path.join(path,'dataset',(str(i)+'.png'))
+        img = image.img_to_array(image.load_img(img_path,target_size=None,interpolation='bicubic'))
         features, _ = run_dlib_shape(img)
+        
         if features is not None:
+            file_id.append(i)            
             all_features.append(features)
-            
+
     landmark_features = np.array(all_features)
     
     #reshape and flatten the data
     shape0 = landmark_features.shape[0]
     shape1 = landmark_features.shape[1]*landmark_features.shape[2]
     
-    return landmark_features.reshape(shape0,shape1)
+    landmark_features = landmark_features.reshape(shape0,shape1)
+    
+    df_feat = pd.DataFrame(landmark_features)
+    df_id = pd.DataFrame(file_id, columns=['file_name'])
+    df_all = pd.concat([df_id,df_feat],axis=1)
+    df_labels = df[df['file_name'].isin(file_id)]
+    
+    return df_labels,df_all
 

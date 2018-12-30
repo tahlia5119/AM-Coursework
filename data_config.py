@@ -38,11 +38,13 @@ class data_config:
             dets=detector(rgb,1)
             faces.append(len(dets))
             
+        landmark_features, file_id = l2.extract_features_labels(img_path,df)
         df['faces_detected'] = faces
         
         df = df[df.faces_detected > 0]
+        df = df[df.file_name.isin(file_id)]
         
-        return df[df.columns.tolist()[:-1]]
+        return df[df.columns.tolist()[:-1]], landmark_features
     
     def pixel_counts(path,df):
         
@@ -67,9 +69,9 @@ class data_config:
             grey = grey.astype('uint8')
             gray_array.append(np.array(grey))
             
-            shape0 = np.array(gray_array).shape[0]
-            shape1 = np.array(gray_array).shape[1]
-            shape2 = np.array(gray_array).shape[2]
+        shape0 = np.array(gray_array).shape[0]
+        shape1 = np.array(gray_array).shape[1]
+        shape2 = np.array(gray_array).shape[2]
             
         return np.array(gray_array).reshape([shape0,shape1,shape2,1])
     
@@ -87,11 +89,29 @@ class data_config:
         
         return np.array(rgb_array)
     
-    def facial_landmark_values(path,df):
-        
-        feature_array = l2.extract_features_labels(path,df)
-        
-        return feature_array
-                
-        
+#    def facial_landmark_values(path,df):
+#        
+#        feature_array = []
+#        detector = dlib.get_frontal_face_detector()
+#        faces = []
+#        
+#        for i in df['file_name']:
+#            img_path = os.path.join(path,'dataset',(str(i)+'.png'))
+#            img = image.img_to_array(image.load_img(img_path, target_size=None,interpolation='bicubic')) 
+#            img.astype('uint8')
+#            rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+#            rgb = rgb.astype('uint8')
+#            
+#            rects = detector(rgb,1)
+#            num_faces = len(rects)
+#            
+#            face_areas = np.zeros((1,num_faces))
+#            face_shapes = np.zeros((136, num_faces),dtype =np.int64)
+#            
+#            
+#            feature_array.append(np.array(rgb))
+#            
+#        
+#        return feature_array
+
         

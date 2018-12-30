@@ -8,6 +8,7 @@ Created on Wed Oct 31 16:10:14 2018
 import os
 import pandas as pd
 from data_config import data_config as dc
+import lab2_landmarks as l2
 import numpy as np
 from sklearn.model_selection import train_test_split
 from keras.utils import to_categorical
@@ -25,7 +26,9 @@ the image is removed from the dataset
 """
 #Remove any files that are considered noisy i.e. the landscape photos
 print('Removing noise...')
-df_labels = dc.remove_noise(data_path,df)
+df_labels,landmark_features = l2.extract_features_labels(data_path,df)
+landmark_features.index = landmark_features['file_name']-1
+#df_labels, landmark_features = dc.remove_noise(data_path,df)
 
 """
 SPLITTING THE DATA (Binary classes)
@@ -46,18 +49,18 @@ path1 = os.path.join(data_path,'train_test_csv')
 os.chdir(path1)
 binary_label_names = ['eyeglasses','smiling','young','human']
 classes = [1,-1]
-x = df_labels['file_name']
+x = landmark_features
 
 for label in binary_label_names:
     y = df_labels[label]
     x_train, x_test, y_train, y_test = train_test_split(x,y, test_size=0.2,random_state=42,stratify=y)
     train = pd.concat((x_train,y_train),axis=1)
     test = pd.concat((x_test,y_test),axis=1)
-    train.to_csv((label+'_train.csv'))
-    test.to_csv((label+'_test.csv'))
+    train.to_csv((label+'_train.csv'),index=False)
+    test.to_csv((label+'_test.csv'),index=False)
     
 """
-CONVERSION OF IMAGES
+CONVERSION OF IMAGES (Binary classes)
 
 This part converts the images to different types of data:
 - feature locations
@@ -73,9 +76,11 @@ path2 = os.path.join(data_path,'npy_files')
 
 for label in binary_label_names:
     os.chdir(path1)
-    train = pd.read_csv((label+'_train.csv'),header=0,index_col=0)
+    train = pd.read_csv((label+'_train.csv'),header=0,index_col=False)
+    train.index = train['file_name']-1
     train_label = to_categorical(train[label])
-    test = pd.read_csv((label+'_test.csv'),header=0,index_col=0)
+    test = pd.read_csv((label+'_test.csv'),header=0,index_col=False)
+    test.index = test['file_name']-1
     test_label = to_categorical(test[label])
     
     ####
@@ -86,7 +91,7 @@ for label in binary_label_names:
     print("Converting training data for pixel counts...")
     train_data_pixel = dc.pixel_counts(data_path,train)
     print("Converting training data for feature extractions...")
-    train_data_feature = dc.facial_landmark_values(data_path,train)
+    train_data_feature = np.array(train.drop('file_name',axis=1))
     ####
     
     ####
@@ -97,7 +102,7 @@ for label in binary_label_names:
     print("Converting testing data for pixel counts...")
     test_data_pixel = dc.pixel_counts(data_path,test)
     print("Converting testing data for feature extractions...")
-    test_data_feature = dc.facial_landmark_values(data_path,test)
+    test_data_feature = test.drop('file_name',axis=1)
     ####
     os.chdir(path2)
     print("Saving data to .npy files...")
@@ -114,3 +119,64 @@ for label in binary_label_names:
     np.save((str(label)+'_train_label'),train_label)
     np.save((str(label)+'_test_label'),test_label)
     
+"""
+SPLITTING THE DATA (Multiclass)
+
+I first double checked the number of unique classes (7; -1,0,1,2,3,4,5) in the hair_color label 
+and found that the number of classes did not correspond to the number of different
+hair colors (6; bald, blonde, ginger, brown, black,grey).
+"""
+os.chdir(path1)
+classes = [0,1,2,3,4,5]
+df_labels = df_labels[df_labels.hair_color != -1]
+fid = np.array(df_labels['file_name'])
+x=landmark_features[landmark_features.file_name.isin(fid)]
+y = df_labels['hair_color']
+x_train, x_test, y_train, y_test = train_test_split(x,y, test_size=0.2,random_state=42,stratify=y)
+train = pd.concat((x_train,y_train),axis=1)
+test = pd.concat((x_test,y_test),axis=1)
+train.to_csv(('hair_color_train.csv'))
+test.to_csv(('hair_color_test.csv'))
+
+"""
+Conveting the data (multiclass)
+"""
+
+train_label = to_categorical(train['hair_color'])
+test_label = to_categorical(test['hair_color'])
+
+####
+print("Converting training data for greyscale images...")
+train_data_gray = dc.image_to_data_gray(data_path,train)
+print("Converting training data for RGB images...")
+train_data_rgb = dc.image_to_data_rgb(data_path,train)
+print("Converting training data for pixel counts...")
+train_data_pixel = dc.pixel_counts(data_path,train)
+print("Converting training data for feature extractions...")
+train_data_feature = train.drop('file_name',axis=1)
+####
+
+####
+print("Converting testing data for greyscale images...")
+test_data_gray = dc.image_to_data_gray(data_path,test)
+print("Conveerting testing data for RGB images...")
+test_data_rgb = dc.image_to_data_rgb(data_path,test)
+print("Converting testing data for pixel counts...")
+test_data_pixel = dc.pixel_counts(data_path,test)
+print("Converting testing data for feature extractions...")
+test_data_feature = test.drop('file_name',axis=1)
+####
+os.chdir(path2)
+print("Saving data to .npy files...")
+np.save(('hair_color_train_gray'),train_data_gray)
+np.save(('hair_color_train_rgb'),train_data_rgb)
+np.save(('hair_color_train_pixel'),train_data_pixel)
+np.save(('hair_color_train_feature'),train_data_feature)
+
+np.save(('hair_color_test_gray'),test_data_gray)
+np.save(('hair_color_test_rgb'),test_data_rgb)
+np.save(('hair_color_test_pixel'),test_data_pixel)
+np.save(('hair_color_test_feature'),test_data_feature)
+
+np.save(('hair_color_train_label'),train_label)
+np.save(('hair_color_test_label'),test_label)
