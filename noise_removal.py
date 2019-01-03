@@ -16,6 +16,7 @@ from keras.utils import to_categorical
 data_path ='D:/Tahlia/OneDrive/University/Year 4/Applied Machine Learning'
 os.chdir(data_path)
 df = pd.read_csv('attribute_list.csv',header = 1)
+target_size = (32,32)
 
 """
 NOISE REMOVAL
@@ -28,7 +29,6 @@ the image is removed from the dataset
 print('Removing noise...')
 df_labels,landmark_features = l2.extract_features_labels(data_path,df)
 landmark_features.index = landmark_features['file_name']-1
-#df_labels, landmark_features = dc.remove_noise(data_path,df)
 
 """
 SPLITTING THE DATA (Binary classes)
@@ -72,7 +72,7 @@ Using the data_config scirpt, the images are converted to data which are then
 saved as '.npy' files. This saves time later on when implementing models
 
 """
-path2 = os.path.join(data_path,'npy_files')
+path2 = os.path.join(data_path,'npy_files_32')
 
 for label in binary_label_names:
     os.chdir(path1)
@@ -85,9 +85,9 @@ for label in binary_label_names:
     
     ####
     print("Converting training data for greyscale images...")
-    train_data_gray = dc.image_to_data_gray(data_path,train)
+    train_data_gray = dc.image_to_data_gray(data_path,train,target_size)
     print("Converting training data for RGB images...")
-    train_data_rgb = dc.image_to_data_rgb(data_path,train)
+    train_data_rgb = dc.image_to_data_rgb(data_path,train,target_size)
     print("Converting training data for pixel counts...")
     train_data_pixel = dc.pixel_counts(data_path,train)
     print("Converting training data for feature extractions...")
@@ -96,9 +96,9 @@ for label in binary_label_names:
     
     ####
     print("Converting testing data for greyscale images...")
-    test_data_gray = dc.image_to_data_gray(data_path,test)
+    test_data_gray = dc.image_to_data_gray(data_path,test,target_size)
     print("Conveerting testing data for RGB images...")
-    test_data_rgb = dc.image_to_data_gray(data_path,test)
+    test_data_rgb = dc.image_to_data_rgb(data_path,test,target_size)
     print("Converting testing data for pixel counts...")
     test_data_pixel = dc.pixel_counts(data_path,test)
     print("Converting testing data for feature extractions...")
@@ -127,8 +127,8 @@ and found that the number of classes did not correspond to the number of differe
 hair colors (6; bald, blonde, ginger, brown, black,grey).
 """
 os.chdir(path1)
-classes = [0,1,2,3,4,5]
-df_labels = df_labels[df_labels.hair_color != -1]
+classes = [-1,0,1,2,3,4,5]
+#df_labels = df_labels[df_labels.hair_color != -1]
 fid = np.array(df_labels['file_name'])
 x=landmark_features[landmark_features.file_name.isin(fid)]
 y = df_labels['hair_color']
@@ -147,9 +147,9 @@ test_label = to_categorical(test['hair_color'])
 
 ####
 print("Converting training data for greyscale images...")
-train_data_gray = dc.image_to_data_gray(data_path,train)
+train_data_gray = dc.image_to_data_gray(data_path,train,target_size)
 print("Converting training data for RGB images...")
-train_data_rgb = dc.image_to_data_rgb(data_path,train)
+train_data_rgb = dc.image_to_data_rgb(data_path,train,target_size)
 print("Converting training data for pixel counts...")
 train_data_pixel = dc.pixel_counts(data_path,train)
 print("Converting training data for feature extractions...")
@@ -158,9 +158,9 @@ train_data_feature = train.drop('file_name',axis=1)
 
 ####
 print("Converting testing data for greyscale images...")
-test_data_gray = dc.image_to_data_gray(data_path,test)
+test_data_gray = dc.image_to_data_gray(data_path,test,target_size)
 print("Conveerting testing data for RGB images...")
-test_data_rgb = dc.image_to_data_rgb(data_path,test)
+test_data_rgb = dc.image_to_data_rgb(data_path,test,target_size)
 print("Converting testing data for pixel counts...")
 test_data_pixel = dc.pixel_counts(data_path,test)
 print("Converting testing data for feature extractions...")
