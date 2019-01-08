@@ -105,7 +105,7 @@ def extract_features_labels(path,df):
     file_id = []
 
     for i in df['file_name']:
-        img_path = os.path.join(path,'dataset',(str(i)+'.png'))
+        img_path = os.path.join(path,(str(i)+'.png'))
         img = image.img_to_array(image.load_img(img_path,target_size=None,interpolation='bicubic'))
         features, _ = run_dlib_shape(img)
         

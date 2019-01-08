@@ -1,25 +1,23 @@
 # -*- coding: utf-8 -*-
 """
-Created on Tue Dec 25 17:56:43 2018
+Created on Mon Jan  7 21:38:22 2019
 
 @author: Tahlia
 """
 
 import os
 import numpy as np
-import time
+import pandas as pd
 np.random.seed(0)
 from keras.models import Sequential
 from keras.layers import Dense, Conv2D, MaxPooling2D, Dropout, Flatten, Activation
-from keras.utils.np_utils import to_categorical
 from keras.layers.normalization import BatchNormalization
 from keras import optimizers
-from data_config import data_config as dc
-from keras.metrics import categorical_accuracy
-from matplotlib import pyplot
 from keras.callbacks import EarlyStopping, ModelCheckpoint
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.externals import joblib 
 
-label = 'young' #choose from 'smiling', 'eyeglasses', 'human', 'young', or 'hair_color'
+label = 'eyeglasses' #choose from 'smiling', 'eyeglasses', 'human', 'young', or 'hair_color'
 data_type = 'rgb' #choose from 'rgb' or 'gray'
 
 #Main folder path
@@ -28,11 +26,14 @@ data_path ='D:/Tahlia/OneDrive/University/Year 4/Applied Machine Learning'
 #location of all the scripts
 script_path = os.path.join(data_path,'scripts')
 
-#save the numpy arrays to this folder
+# load the numpy arrays from this folder
 npy_path = os.path.join(data_path,'npy_files') 
 
-#File name and loction for the learning curve that is output
-graph_path = os.path.join(data_path,'train_curves','sgd6'+label+'_'+data_type+'.png')
+# save the models and scalers to this folder
+model_path = os.path.join(data_path,'models_scalers')
+
+# Initialize the encoder
+encoder = OneHotEncoder(sparse=False, categories = 'auto')
 
 #Change to main directory
 os.chdir(data_path)
@@ -42,17 +43,22 @@ os.chdir(data_path)
 print('Getting data...')
 train_data = np.load(os.path.join(npy_path,label+'_train_'+data_type+'.npy'))
 test_data = np.load(os.path.join(npy_path,label+'_val_'+data_type+'.npy'))
-train_label = np.load(os.path.join(data_path,'npy_files',label+'_train_label.npy'))
-test_label = np.load(os.path.join(data_path,'npy_files',label+'_val_label.npy'))
+train_data = np.concatenate((train_data,test_data))
 
-#Get the number of classes (for the final Dense layer)
-num_classes = train_label.shape[1]
+# Open the files containing the label into a dataframe
+train_label = pd.read_csv(os.path.join(data_path,'train_test_csv','eyeglasses_train.csv'),header = 0,index_col=0)['eyeglasses']
+test_label = pd.read_csv(os.path.join(data_path,'train_test_csv','eyeglasses_val.csv'),header = 0,index_col=0)['eyeglasses']
+train_label = pd.concat([train_label,test_label])
+
+# Fit the encoder and save it
+encoder.fit(np.array(train_label).reshape(-1,1))
+joblib.dump(encoder, os.path.join(model_path,('eyeglasses_encoder.pkl')))
+train_label = encoder.transform(np.array(train_label).reshape(-1,1))
+test_label = encoder.transform(np.array(test_label).reshape(-1,1))
 input_shape = train_data.shape[1:]
 
-#Optimizers (SGD selected with parameters: 
-#lr=.0001, decay=1e-6, momentum=0.9, nesterov=True
-sgd = optimizers.SGD(lr=0.0001, decay=1e-6, momentum=0.9, nesterov=True)
-adam = optimizers.adam(lr=0.001, beta_1=0.9,beta_2=0.999,epsilon=1e-8)
+#Optimizers SGD selected with parameters: 
+sgd = optimizers.SGD(lr=0.001, decay=1e-3, momentum=0.9, nesterov=True)
 
 #Define the model layout
 def createModel():
@@ -95,7 +101,7 @@ def createModel():
     
     # OUTPUT LAYER
     # Fully connected layer with as many neurons as there different classes
-    model.add(Dense(num_classes))
+    model.add(Dense(2))
     model.add(Activation('softmax'))
     
     return model
@@ -107,36 +113,18 @@ batch_size = 50
 epochs = 50
 
 # Set callback functions to early stop training and save the best model so far
-callbacks = [EarlyStopping(monitor='val_loss'),ModelCheckpoint(filepath='best_model.h5', monitor='val_loss', save_best_only=True)]
+callbacks = [EarlyStopping(monitor='val_loss', patience=5),ModelCheckpoint(filepath=os.path.join(model_path,'best_model_eyeglasses.h5'), monitor='val_loss', save_best_only=True)]
 
 print('Compiling model...')
 # Compile the model - use 'categorical_crossentropy' for hair_color
-if label == 'hair_color':
-    model.compile(optimizer = sgd, loss='categorical_crossentropy',metrics=['accuracy'])
-else:
-    model.compile(optimizer = sgd, loss='binary_crossentropy',metrics=['accuracy'])
-
-# Meausre fitting time
-start = time.time()
-print('Fitting model...')
+model.compile(optimizer = sgd, loss='binary_crossentropy',metrics=['accuracy'])
 
 # Fit the model
-history = model.fit(train_data, train_label, batch_size=batch_size, epochs=epochs, verbose=1, 
-                    validation_data=(test_data, test_label))#,callbacks=callbacks)
+history = model.fit(train_data, train_label, batch_size=batch_size, epochs=epochs, verbose=1, validation_data=(test_data, test_label),callbacks=callbacks)
 
-# Fitting time
-run = round(time.time()-start,2)
-
-# Evaluate the model using the validation set
-#model.evaluate(test_data, test_label)
-print('Fitting time: ',run)
-
-# plot train and validation loss
-pyplot.plot(history.history['loss'])
-pyplot.plot(history.history['val_loss'])
-pyplot.title('model train vs validation loss')
-pyplot.ylabel('loss')
-pyplot.xlabel('epoch')
-pyplot.legend(['train', 'validation'], loc='upper right')
-#pyplot.show()
-pyplot.savefig(graph_path)
+# serialize model to JSON
+model_json = model.to_json()
+with open(os.path.join(model_path,"eyeglasses_model.json"), "w") as json_file:
+    json_file.write(model_json)
+# serialize weights to HDF5
+model.save_weights(os.path.join(model_path,"eyeglasses_model.h5"))
