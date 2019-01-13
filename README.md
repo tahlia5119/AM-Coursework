@@ -34,6 +34,6 @@ The label_curves.py script calls the run_model.py script to plot learning curves
 
 The hyperparameters.py script is parameter selection for each label for the classifiers that were identified as the best accuracies in the sklearn_models.py scripts.
 
-The <taskname>_save_model.py scripts fit the chosen model for each task, as well as any scalers or encoders used in processing the data, and saves these to either pickle, json, or HF5D files which are then later implemented in the <taskname>_test.py files and the <taskname>_final.py scripts.
+The <task_name>_save_model.py scripts fit the chosen model for each task, as well as any scalers or encoders used in processing the data, and saves these to either pickle, json, or HF5D files which are then later implemented in the <task_name>_test.py files and the <task_name>_final.py scripts.
  
-The <taskname>_final.py scripts take new input data, converts the data accordingly and makes predictions based on the data and outputs them to a csv file with the inference accuracy.
+The <task_name>_final.py scripts take new input data, converts the data accordingly and makes predictions based on the data and outputs them to a csv file with the inference accuracy.
